@@ -1,7 +1,7 @@
 require 'minitest/autorun'
 require 'computable'
 
-class TestGraphs < MiniTest::Unit::TestCase
+class TestRecursionDetection < MiniTest::Unit::TestCase
   class MyBuilder < Computable
     calc_value :recursion1 do
       recursion1
@@ -20,6 +20,10 @@ class TestGraphs < MiniTest::Unit::TestCase
 
   def setup
     @b = MyBuilder.new
+  end
+
+  def teardown
+#     @b.computable_display_dot
   end
 
   def test_recursion1
