@@ -165,6 +165,7 @@ class Computable
         v.expire_value
         v.expired_from.clear
         v.used_for.clear
+        value.freeze if freeze
         v.value = value
       end
       v.value_calced = false
