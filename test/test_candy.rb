@@ -93,4 +93,12 @@ class TestCandy < MiniTest::Unit::TestCase
     assert_equal "ABCDefAbCDEF", @b.fr
     assert_equal [2]*8, @b.counters.values_at(:top, :l0, :r0, :l1, :r1, :bot, :fl, :fr)
   end
+
+  def test_partial_1
+    @b.fl
+    @b.il = "Abc"
+    assert_equal [1,1,1,1,1,1,1,nil], @b.counters.values_at(:top, :l0, :r0, :l1, :r1, :bot, :fl, :fr)
+    @b.fr
+    assert_equal [2,2,2,1,2,2,1,1], @b.counters.values_at(:top, :l0, :r0, :l1, :r1, :bot, :fl, :fr)
+  end
 end
