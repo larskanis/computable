@@ -7,6 +7,7 @@ class TestFormat < MiniTest::Unit::TestCase
       a.uniq.length == a.length
     end
 
+    input_value :any
     input_value :integer, Integer
     input_value :string4, /\A.{4}\z/
     input_value :uniq_array, method(:verify_uniq_array).to_proc
@@ -22,6 +23,12 @@ class TestFormat < MiniTest::Unit::TestCase
 
   def teardown
 #     @b.computable_display_dot
+  end
+
+  def test_any
+    @b.any = "string"
+    @b.any = []
+    @b.any = 123
   end
 
   def test_check_by_class
