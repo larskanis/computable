@@ -8,9 +8,9 @@ Gem::Specification.new do |spec|
   spec.version       = Computable::VERSION
   spec.authors       = ["Lars Kanis"]
   spec.email         = ["lars@greiz-reinsdorf.de"]
-  spec.description   = %q{TODO: Write a gem description}
-  spec.summary       = %q{TODO: Write a gem summary}
-  spec.homepage      = ""
+  spec.description   = %q{Define computation tasks with automatic caching and dependency tracking.}
+  spec.summary       = %q{Define computation tasks with automatic caching and dependency tracking.}
+  spec.homepage      = "https://github.com/larskanis/computable"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files`.split($/)
