@@ -27,7 +27,7 @@ class Computable
     end
 
     def inspect
-      "<Variable #{name} used_for:#{used_for.keys} expired_from:#{expired_from.keys} has value:#{value==Unknown} value_calced:#{value_calced.inspect}>"
+      "<Variable #{name} used_for:#{used_for.keys} expired_from:#{expired_from.keys} has value:#{Unknown==value} value_calced:#{value_calced.inspect}>"
     end
 
     def calc!
@@ -126,7 +126,7 @@ class Computable
 
 
   def self.verify_format(name, value, format)
-    if format && value!=Unknown && !(format === value)
+    if format && !(Unknown==value) && !(format === value)
       raise InvalidFormat, "variable '#{name}': value #{value.inspect} is not in format #{format.inspect}"
     end
   end
@@ -179,7 +179,7 @@ class Computable
       if @caller
         v2 = v.used_for[@caller.name]
         if v2
-          if v.value==Unknown && v2.value==Unknown && v.value_calced && v2.value_calced
+          if Unknown==v.value && Unknown==v2.value && v.value_calced && v2.value_calced
             raise RecursionDetected, "#{v2.name} depends on #{name}, but #{name} could not be computed without #{v2.name}"
           end
         else
@@ -189,7 +189,7 @@ class Computable
 
       v.recalc_value
 
-      v.value = v.calc! if v.value==Unknown
+      v.value = v.calc! if Unknown==v.value
       v.value
     end
   end
