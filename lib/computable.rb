@@ -32,6 +32,7 @@ class Computable
 
     def calc!
       self.count += 1
+      self.value_calced = true
       calc_method.call(self)
     end
 
@@ -76,6 +77,34 @@ class Computable
         end
         expired_from.clear
       end
+    end
+
+    def assign_value(value)
+      unless self.value == value
+        expire_value
+        expired_from.clear
+        used_for.clear
+        self.value = value
+      end
+      self.value_calced = false
+    end
+
+    def query_value(kaller)
+      if kaller
+        v2 = used_for[kaller.name]
+        if v2
+          if Unknown==value && Unknown==v2.value && value_calced && v2.value_calced
+            raise RecursionDetected, "#{v2.name} depends on #{name}, but #{name} could not be computed without #{v2.name}"
+          end
+        else
+          used_for[kaller.name] = kaller
+        end
+      end
+
+      recalc_value
+
+      self.value = calc! if Unknown==value
+      self.value
     end
   end
 
@@ -141,7 +170,6 @@ class Computable
     calc_method2_id = "calc_#{name}_with_tracking".intern
     define_method(calc_method2_id) do |v|
       begin
-        v.value_calced = true
         @caller, old_caller = v, @caller
         begin
           puts "do calc #{v.inspect}" if @@debug
@@ -161,14 +189,8 @@ class Computable
       puts "set #{name}: #{value.inspect} #{v.inspect}" if @@debug
       v = @variables[name] = Variable.new(name, method(calc_method2_id)) unless v
 
-      unless v.value == value
-        v.expire_value
-        v.expired_from.clear
-        v.used_for.clear
-        value.freeze if freeze
-        v.value = value
-      end
-      v.value_calced = false
+      value.freeze if freeze
+      v.assign_value(value)
     end
 
     define_method(name) do
@@ -176,21 +198,7 @@ class Computable
       puts "called #{name} #{v.inspect}" if @@debug
       v = @variables[name] = Variable.new(name, method(calc_method2_id)) unless v
 
-      if @caller
-        v2 = v.used_for[@caller.name]
-        if v2
-          if Unknown==v.value && Unknown==v2.value && v.value_calced && v2.value_calced
-            raise RecursionDetected, "#{v2.name} depends on #{name}, but #{name} could not be computed without #{v2.name}"
-          end
-        else
-          v.used_for[@caller.name] = @caller
-        end
-      end
-
-      v.recalc_value
-
-      v.value = v.calc! if Unknown==v.value
-      v.value
+      v.query_value(@caller)
     end
   end
 
