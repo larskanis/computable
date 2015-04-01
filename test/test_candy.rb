@@ -1,7 +1,7 @@
 require 'minitest/autorun'
 require 'computable'
 
-class TestCandy < MiniTest::Unit::TestCase
+class TestCandy < Minitest::Test
   class MyBuilder < Computable
     attr_reader :counters
 

@@ -1,7 +1,7 @@
 require 'minitest/autorun'
 require 'computable'
 
-class TestInputValue < MiniTest::Unit::TestCase
+class TestInputValue < Minitest::Test
   class MyBuilder < Computable
     input_value :i
 

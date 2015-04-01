@@ -1,7 +1,7 @@
 require 'minitest/autorun'
 require 'computable'
 
-class TestRecursionDetection < MiniTest::Unit::TestCase
+class TestRecursionDetection < Minitest::Test
   class MyBuilder < Computable
     calc_value :recursion1 do
       recursion1

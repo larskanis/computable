@@ -1,7 +1,7 @@
 require 'minitest/autorun'
 require 'computable'
 
-class TestUnknown < MiniTest::Unit::TestCase
+class TestUnknown < Minitest::Test
   class MyTruth
     def ==(obj)
       true

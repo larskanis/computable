@@ -1,7 +1,7 @@
 require 'minitest/autorun'
 require 'computable'
 
-class TestFormat < MiniTest::Unit::TestCase
+class TestFormat < Minitest::Test
   class MyBuilder < Computable
     def self.verify_uniq_array(a)
       a.uniq.length == a.length

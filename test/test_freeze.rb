@@ -1,7 +1,7 @@
 require 'minitest/autorun'
 require 'computable'
 
-class TestFreeze < MiniTest::Unit::TestCase
+class TestFreeze < Minitest::Test
   class MyBuilder < Computable
     input_value :no_freeze1, String, freeze: false
     calc_value :no_freeze2, String, freeze: false do
