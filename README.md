@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/larskanis/computable.svg)](https://travis-ci.org/larskanis/computable)
+
 # Computable
 
 TODO: Write a gem description
