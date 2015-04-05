@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 require "computable/version"
+require "thread"
 
 class Computable
   class Error < RuntimeError; end
@@ -16,7 +17,7 @@ class Computable
   end
 
   class Variable
-    attr_accessor :name, :calc_method, :used_for, :expired_from, :value, :value_calced, :count
+    attr_accessor :name, :calc_method, :used_for, :expired_from, :value, :value_calced, :count, :in_process
     def initialize(name, calc_method)
       @name = name
       @calc_method = calc_method
@@ -24,6 +25,7 @@ class Computable
       @expired_from = {}
       @count = 0
       @value = Unknown
+      @in_process = false
     end
 
     def inspect
@@ -59,6 +61,16 @@ class Computable
       end
     end
 
+    def process_recalced_value(recalced_value)
+      if self.value == recalced_value
+        revoke_expire
+      else
+        self.value = recalced_value
+        used_for.clear
+      end
+      expired_from.clear
+    end
+
     def recalc_value
       return if !value_calced || expired_from.empty?
 
@@ -69,13 +81,74 @@ class Computable
 
       unless expired_from.empty?
         recalced_value = self.calc!
-        if self.value == recalced_value
-          revoke_expire
-        else
-          self.value = recalced_value
-          used_for.clear
+        process_recalced_value(recalced_value)
+      end
+    end
+
+    def new_worker(from_workers, to_workers)
+      Thread.new do
+        while v = to_workers.pop
+          puts "recalc parallel #{v.inspect}" if Computable.computable_debug
+          begin
+            recalced_value = v.calc!
+          rescue Exception => err
+          end
+          from_workers.push([v, recalced_value, err])
         end
-        expired_from.clear
+      end
+    end
+
+    def recalc_parallel(max_threads)
+      workers = []
+      from_workers = Queue.new
+      to_workers = Queue.new
+
+      master_loop(max_threads, workers, from_workers, to_workers)
+
+      workers.size.times { to_workers.push(nil) }
+      workers.each { |t| t.join }
+    end
+
+    def master_loop(max_threads, workers, from_workers, to_workers)
+      num_working = 0
+      loop do
+        if num_working == max_threads || !(node = find_recalcable)
+          #
+          # maxed out or no nodes available -- wait for results
+          #
+          return if num_working == 0
+
+          node, recalced_value, err = from_workers.pop
+          node.in_process = false
+          num_working -= 1
+          raise err if err
+
+          node.process_recalced_value(recalced_value)
+        else
+          #
+          # not maxed out and found a node -- compute it
+          #
+          if (max_threads && workers.size < max_threads) ||
+             (!max_threads && num_working == workers.size)
+            workers << new_worker(from_workers, to_workers)
+          end
+          node.in_process = true
+          num_working += 1
+          to_workers.push(node)
+        end
+      end
+    end
+
+    def find_recalcable
+      if !value_calced || expired_from.empty? || in_process
+        nil
+      elsif expired_from.all?{ |_, v2| !v2.value_calced || v2.expired_from.empty? }
+        self
+      else
+        expired_from.each do |_, v2|
+          node = v2.find_recalcable and return node
+        end
+        nil
       end
     end
 
@@ -101,7 +174,12 @@ class Computable
         end
       end
 
-      recalc_value
+      max_threads = Computable.computable_max_threads
+      if !max_threads || max_threads > 0
+        recalc_parallel(max_threads)
+      else
+        recalc_value
+      end
 
       self.value = calc! if Unknown==value
       self.value
@@ -114,6 +192,14 @@ class Computable
   end
   def self.computable_debug
     @@debug
+  end
+
+  @@max_threads = nil
+  def self.computable_max_threads=(v)
+    @@max_threads = v
+  end
+  def self.computable_max_threads
+    @@max_threads
   end
 
   def computable_display_dot(params={})
