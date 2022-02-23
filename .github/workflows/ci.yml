@@ -19,12 +19,16 @@ jobs:
             ruby: "2.5"
           - os: ubuntu
             ruby: "truffleruby"
+            NO_TIMING_TESTS: true
           - os: ubuntu
             ruby: "jruby"
           - os: macos
             ruby: "head"
+            NO_TIMING_TESTS: true
 
     runs-on: ${{ matrix.os }}-latest
+    env:
+      NO_TIMING_TESTS: ${{ matrix.NO_TIMING_TESTS }}
 
     steps:
 
