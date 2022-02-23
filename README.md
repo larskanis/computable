@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.org/larskanis/computable.svg)](https://travis-ci.org/larskanis/computable)
+[![Build Status Github Actions](https://github.com/larskanis/computable/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/larskanis/computable/actions/workflows/ci.yml)
+[![Build Status Travis CI](https://travis-ci.org/larskanis/computable.svg)](https://travis-ci.org/larskanis/computable)
 
 # Computable
 
