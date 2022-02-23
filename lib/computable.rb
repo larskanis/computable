@@ -105,7 +105,7 @@ class Computable
 
       master_loop(max_threads, workers, from_workers, to_workers)
 
-      workers.size.times { to_workers.push(nil) }
+      to_workers.close
       workers.each { |t| t.join }
     end
 
