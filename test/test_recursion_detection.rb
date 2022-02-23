@@ -1,5 +1,4 @@
-require 'minitest/autorun'
-require 'computable'
+require_relative 'helper'
 
 class TestRecursionDetection < Minitest::Test
   class MyBuilder < Computable
@@ -33,4 +32,8 @@ class TestRecursionDetection < Minitest::Test
   def test_recursion2
     assert_raises(Computable::RecursionDetected){ @b.recursion2 }
   end
+end
+
+class TestRecursionDetectionParallel < TestCandy
+  include Helper::EnableParallel
 end

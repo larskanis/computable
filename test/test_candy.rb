@@ -1,5 +1,4 @@
-require 'minitest/autorun'
-require 'computable'
+require_relative 'helper'
 
 class TestCandy < Minitest::Test
   class MyBuilder < Computable
@@ -101,4 +100,8 @@ class TestCandy < Minitest::Test
     @b.fr
     assert_equal [2,2,2,1,2,2,1,1], @b.counters.values_at(:top, :l0, :r0, :l1, :r1, :bot, :fl, :fr)
   end
+end
+
+class TestCandyParallel < TestCandy
+  include Helper::EnableParallel
 end

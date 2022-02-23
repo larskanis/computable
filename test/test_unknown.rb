@@ -1,5 +1,4 @@
-require 'minitest/autorun'
-require 'computable'
+require_relative 'helper'
 
 class TestUnknown < Minitest::Test
   class MyTruth
@@ -41,4 +40,8 @@ class TestUnknown < Minitest::Test
     assert_same @b.v1, v
     assert_same @b.v2, v
   end
+end
+
+class TestUnknownParallel < TestCandy
+  include Helper::EnableParallel
 end

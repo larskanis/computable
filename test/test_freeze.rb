@@ -1,5 +1,4 @@
-require 'minitest/autorun'
-require 'computable'
+require_relative 'helper'
 
 class TestFreeze < Minitest::Test
   class MyBuilder < Computable
@@ -33,4 +32,8 @@ class TestFreeze < Minitest::Test
     assert @b.freeze1.frozen?, "should be frozen"
     assert @b.freeze2.frozen?, "should be frozen"
   end
+end
+
+class TestFreezeParallel < TestCandy
+  include Helper::EnableParallel
 end

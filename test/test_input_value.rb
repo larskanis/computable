@@ -1,5 +1,4 @@
-require 'minitest/autorun'
-require 'computable'
+require_relative 'helper'
 
 class TestInputValue < Minitest::Test
   class MyBuilder < Computable
@@ -45,4 +44,8 @@ class TestInputValue < Minitest::Test
     @b.i = 3
     assert_equal 6, @b.o
   end
+end
+
+class TestInputValueParallel < TestCandy
+  include Helper::EnableParallel
 end

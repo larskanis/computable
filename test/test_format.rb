@@ -1,5 +1,4 @@
-require 'minitest/autorun'
-require 'computable'
+require_relative 'helper'
 
 class TestFormat < Minitest::Test
   class MyBuilder < Computable
@@ -65,4 +64,8 @@ class TestFormat < Minitest::Test
     @b.integer = -4
     assert_raises(Computable::InvalidFormat){ @b.sqrt }
   end
+end
+
+class TestFormatParallel < TestCandy
+  include Helper::EnableParallel
 end

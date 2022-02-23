@@ -1,5 +1,4 @@
-require 'minitest/autorun'
-require 'computable'
+require_relative 'helper'
 
 class TestParallel < Minitest::Test
   class MyBuilder < Computable
