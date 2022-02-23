@@ -1,0 +1,40 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  job_test:
+    name: CI
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows
+            ruby: "head"
+          - os: ubuntu
+            ruby: "head"
+          - os: ubuntu
+            ruby: "3.1"
+          - os: ubuntu
+            ruby: "2.5"
+          - os: ubuntu
+            ruby: "truffleruby"
+          - os: ubuntu
+            ruby: "jruby"
+          - os: macos
+            ruby: "head"
+
+    runs-on: ${{ matrix.os }}-latest
+
+    steps:
+
+      - uses: actions/checkout@v2
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+
+      - run: bundle install
+
+      - name: Run tests
+        run: bundle exec rake test
