@@ -66,6 +66,6 @@ class TestFormat < Minitest::Test
   end
 end
 
-class TestFormatParallel < TestCandy
+class TestFormatParallel < TestFormat
   include Helper::EnableParallel
 end

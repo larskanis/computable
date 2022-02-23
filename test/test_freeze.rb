@@ -34,6 +34,6 @@ class TestFreeze < Minitest::Test
   end
 end
 
-class TestFreezeParallel < TestCandy
+class TestFreezeParallel < TestFreeze
   include Helper::EnableParallel
 end

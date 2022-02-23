@@ -46,6 +46,6 @@ class TestInputValue < Minitest::Test
   end
 end
 
-class TestInputValueParallel < TestCandy
+class TestInputValueParallel < TestInputValue
   include Helper::EnableParallel
 end

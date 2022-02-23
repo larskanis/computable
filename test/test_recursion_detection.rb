@@ -34,6 +34,6 @@ class TestRecursionDetection < Minitest::Test
   end
 end
 
-class TestRecursionDetectionParallel < TestCandy
+class TestRecursionDetectionParallel < TestRecursionDetection
   include Helper::EnableParallel
 end

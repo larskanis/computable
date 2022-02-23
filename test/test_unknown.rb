@@ -42,6 +42,6 @@ class TestUnknown < Minitest::Test
   end
 end
 
-class TestUnknownParallel < TestCandy
+class TestUnknownParallel < TestUnknown
   include Helper::EnableParallel
 end
