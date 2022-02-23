@@ -17,7 +17,7 @@ class Computable
   end
 
   class Variable
-    attr_accessor :name, :calc_method, :used_for, :expired_from, :value, :value_calced, :count, :in_process
+    attr_accessor :name, :calc_method, :used_for, :expired_from, :value, :value_calced, :count, :in_process, :recalc_error
     def initialize(name, calc_method)
       @name = name
       @calc_method = calc_method
@@ -26,10 +26,12 @@ class Computable
       @count = 0
       @value = Unknown
       @in_process = false
+      @recalc_error = nil
     end
 
     def inspect
-      "<Variable #{name} used_for:#{used_for.keys} expired_from:#{expired_from.keys} has value:#{Unknown==value} value_calced:#{value_calced.inspect}>"
+      has = @recalc_error ? "error!" : "value:#{Unknown!=value}"
+      "<Variable #{name} used_for:#{used_for.keys} expired_from:#{expired_from.keys} has #{has} value_calced:#{value_calced.inspect}>"
     end
 
     def calc!
@@ -61,10 +63,15 @@ class Computable
       end
     end
 
-    def process_recalced_value(recalced_value)
-      if self.value == recalced_value
+    def process_recalced_value(recalced_value, err)
+      if err
+        self.recalc_error = err
+        self.value = Unknown
+        used_for.clear
+      elsif self.value == recalced_value
         revoke_expire
       else
+        self.recalc_error = nil
         self.value = recalced_value
         used_for.clear
       end
@@ -80,8 +87,11 @@ class Computable
       end
 
       unless expired_from.empty?
-        recalced_value = self.calc!
-        process_recalced_value(recalced_value)
+        begin
+          recalced_value = self.calc!
+        rescue Exception => err
+        end
+        process_recalced_value(recalced_value, err)
       end
     end
 
@@ -89,6 +99,7 @@ class Computable
       Thread.new do
         while v = to_workers.pop
           puts "recalc parallel #{v.inspect}" if Computable.computable_debug
+          err = nil
           begin
             recalced_value = v.calc!
           rescue Exception => err
@@ -121,9 +132,13 @@ class Computable
           node, recalced_value, err = from_workers.pop
           node.in_process = false
           num_working -= 1
-          raise err if err
 
-          node.process_recalced_value(recalced_value)
+          if err
+            # Add the backtrace of the caller to the small in-thread backtrace for better debugging
+            err.set_backtrace(err.backtrace + caller)
+          end
+
+          node.process_recalced_value(recalced_value, err)
         else
           #
           # not maxed out and found a node -- compute it
@@ -181,6 +196,7 @@ class Computable
         recalc_value
       end
 
+      raise recalc_error if recalc_error
       self.value = calc! if Unknown==value
       self.value
     end
