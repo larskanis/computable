@@ -65,7 +65,7 @@ class TestParallel < Minitest::Test
     end
 
     def test_full_parallel
-      Computable.computable_max_threads = nil
+      @b.computable_max_threads = nil
       @b.i1, @b.i2 = 2, 3
       dt, res = diff_time{ @b.o }
       assert_in_delta 0.8, dt, 0.05
@@ -78,7 +78,7 @@ class TestParallel < Minitest::Test
     end
 
     def test_2_threads
-      Computable.computable_max_threads = 2
+      @b.computable_max_threads = 2
       @b.i1, @b.i2 = 2, 3
       dt, res = diff_time{ @b.o }
       assert_in_delta 0.8, dt, 0.05

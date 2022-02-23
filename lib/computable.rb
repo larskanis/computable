@@ -18,9 +18,12 @@ class Computable
 
   class Variable
     attr_accessor :name, :calc_method, :used_for, :expired_from, :value, :value_calced, :count, :in_process, :recalc_error
-    def initialize(name, calc_method)
+
+    def initialize(name, calc_method, debug, max_threads)
       @name = name
       @calc_method = calc_method
+      @debug = debug
+      @max_threads = max_threads
       @used_for = {}
       @expired_from = {}
       @count = 0
@@ -43,7 +46,7 @@ class Computable
     def expire_value
       return if used_for.empty?
 
-      puts "expire #{inspect}" if Computable.computable_debug
+      puts "expire #{inspect}" if @debug
       used_for.each do |name2, v2|
         if v2.value_calced && !v2.expired_from[name]
           v2.expire_value
@@ -55,7 +58,7 @@ class Computable
     def revoke_expire
       return if used_for.empty?
 
-      puts "revoke expire #{inspect}" if Computable.computable_debug
+      puts "revoke expire #{inspect}" if @debug
       used_for.each do |name2, v2|
         if v2.value_calced && v2.expired_from.delete(name) && v2.expired_from.empty?
           v2.revoke_expire
@@ -81,7 +84,7 @@ class Computable
     def recalc_value
       return if !value_calced || expired_from.empty?
 
-      puts "recalc #{inspect}" if Computable.computable_debug
+      puts "recalc #{inspect}" if @debug
       expired_from.each do |name2, v2|
         v2.recalc_value
       end
@@ -98,7 +101,7 @@ class Computable
     def new_worker(from_workers, to_workers)
       Thread.new do
         while v = to_workers.pop
-          puts "recalc parallel #{v.inspect}" if Computable.computable_debug
+          puts "recalc parallel #{v.inspect}" if @debug
           err = nil
           begin
             recalced_value = v.calc!
@@ -189,9 +192,8 @@ class Computable
         end
       end
 
-      max_threads = Computable.computable_max_threads
-      if !max_threads || max_threads > 0
-        recalc_parallel(max_threads)
+      if !@max_threads || @max_threads > 0
+        recalc_parallel(@max_threads)
       else
         recalc_value
       end
@@ -202,20 +204,18 @@ class Computable
     end
   end
 
-  @@debug = false
-  def self.computable_debug=(v)
-    @@debug = v
+  def computable_debug=(v)
+    @computable_debug = v
   end
-  def self.computable_debug
-    @@debug
+  def computable_debug
+    @computable_debug
   end
 
-  @@max_threads = 0
-  def self.computable_max_threads=(v)
-    @@max_threads = v
+  def computable_max_threads=(v)
+    @computable_max_threads = v
   end
-  def self.computable_max_threads
-    @@max_threads
+  def computable_max_threads
+    @computable_max_threads
   end
 
   def computable_display_dot(**kwargs)
@@ -227,7 +227,7 @@ class Computable
   def computable_to_dot(rankdir: "TB", multiline: true)
     dot = "digraph #{self.class.name.inspect} {\n"
     dot << "graph [ dpi = 45, rankdir=#{rankdir} ];\n"
-    @variables.each do |name, v|
+    @computable_variables.each do |name, v|
       col = case
         when !v.value_calced then "color = red,"
         when !v.used_for.empty? then "color = green,"
@@ -247,8 +247,10 @@ class Computable
   end
 
   def initialize
-    @variables = {}
-    @caller = nil
+    @computable_debug = false
+    @computable_max_threads = 0
+    @computable_variables = {}
+    @computable_caller = nil
   end
 
 
@@ -265,35 +267,35 @@ class Computable
     calc_method2_id = "calc_#{name}_with_tracking".intern
     define_method(calc_method2_id) do |v|
       begin
-        @caller, old_caller = v, @caller
+        @computable_caller, old_caller = v, @computable_caller
         begin
-          puts "do calc #{v.inspect}" if @@debug
+          puts "do calc #{v.inspect}" if @computable_debug
           res = send(calc_method_id)
           Computable.verify_format(name, res, format)
           res.freeze if freeze
           res
         ensure
-          @caller = old_caller
+          @computable_caller = old_caller
         end
       end
     end
 
     define_method("#{name}=") do |value|
       Computable.verify_format(name, value, format)
-      v = @variables[name]
-      puts "set #{name}: #{value.inspect} #{v.inspect}" if @@debug
-      v = @variables[name] = Variable.new(name, method(calc_method2_id)) unless v
+      v = @computable_variables[name]
+      puts "set #{name}: #{value.inspect} #{v.inspect}" if @computable_debug
+      v = @computable_variables[name] = Variable.new(name, method(calc_method2_id), @computable_debug, @computable_max_threads) unless v
 
       value.freeze if freeze
       v.assign_value(value)
     end
 
     define_method(name) do
-      v = @variables[name]
-      puts "called #{name} #{v.inspect}" if @@debug
-      v = @variables[name] = Variable.new(name, method(calc_method2_id)) unless v
+      v = @computable_variables[name]
+      puts "called #{name} #{v.inspect}" if @computable_debug
+      v = @computable_variables[name] = Variable.new(name, method(calc_method2_id), @computable_debug, @computable_max_threads) unless v
 
-      v.query_value(@caller)
+      v.query_value(@computable_caller)
     end
   end
 

@@ -4,13 +4,13 @@ require 'computable'
 module Helper
   module EnableParallel
     def setup
-      Computable.computable_max_threads = 100
       super
+      @b.computable_max_threads = 100
     end
 
     def teardown
+      @b.computable_max_threads = 0
       super
-      Computable.computable_max_threads = 0
     end
   end
 end
