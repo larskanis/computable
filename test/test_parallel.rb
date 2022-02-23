@@ -29,6 +29,14 @@ class TestParallel < Minitest::Test
         send("q#{idx}")
       end.inject(:+)
     end
+
+    class MyError < RuntimeError
+    end
+
+    input_value :enable_error
+    calc_value :raise_error do
+      raise MyError if enable_error
+    end
   end
 
   def setup
@@ -37,6 +45,16 @@ class TestParallel < Minitest::Test
 
   def teardown
 #     @b.computable_display_dot
+  end
+
+  def test_error
+    @b.enable_error = false
+    assert_nil @b.raise_error
+    @b.enable_error = true
+    assert_raises(MyBuilder::MyError){ @b.raise_error }
+    assert_raises(MyBuilder::MyError){ @b.raise_error }
+    @b.enable_error = false
+    assert_nil @b.raise_error
   end
 
   unless ENV["NO_TIMING_TESTS"]=="true"
