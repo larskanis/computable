@@ -194,7 +194,7 @@ class Computable
     @@debug
   end
 
-  @@max_threads = nil
+  @@max_threads = 0
   def self.computable_max_threads=(v)
     @@max_threads = v
   end
