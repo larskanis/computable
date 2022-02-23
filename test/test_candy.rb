@@ -10,9 +10,9 @@ class TestCandy < Minitest::Test
       @counters = {}
     end
 
-    def self.counted_value name, format=nil, params={}, &block
+    def self.counted_value name, format=nil, **kwargs, &block
       define_method "#{name}_counted", &block
-      calc_value name, format do
+      calc_value name, format, **kwargs do
         @counters[name] ||= 0
         @counters[name] += 1
         send "#{name}_counted"

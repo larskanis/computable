@@ -202,17 +202,13 @@ class Computable
     @@max_threads
   end
 
-  def computable_display_dot(params={})
+  def computable_display_dot(**kwargs)
     IO.popen("dot -Tpng | display -", "w") do |fd|
-      fd.puts computable_to_dot(params)
+      fd.puts computable_to_dot(**kwargs)
     end
   end
 
-  def computable_to_dot(params={})
-    rankdir = params.delete(:rankdir){ "TB" }
-    multiline = params.delete(:multiline){ true }
-    raise ArgumentError, "invalid params #{params.inspect}" unless params.empty?
-
+  def computable_to_dot(rankdir: "TB", multiline: true)
     dot = "digraph #{self.class.name.inspect} {\n"
     dot << "graph [ dpi = 45, rankdir=#{rankdir} ];\n"
     @variables.each do |name, v|
@@ -246,10 +242,7 @@ class Computable
     end
   end
 
-  def self.calc_value name, format=nil, params={}, &block
-    freeze = params.delete(:freeze){ true }
-    raise ArgumentError, "invalid params #{params.inspect}" unless params.empty?
-
+  def self.calc_value name, format=nil, freeze: true, &block
     calc_method_id = "calc_#{name}".intern
     define_method(calc_method_id, &block)
 
@@ -288,8 +281,8 @@ class Computable
     end
   end
 
-  def self.input_value name, format=nil, params={}
-    calc_value name, format, params do
+  def self.input_value name, format=nil, **kwargs
+    calc_value name, format, **kwargs do
       raise UndefinedValue, "input variable '#{name}' is not assigned"
     end
   end
