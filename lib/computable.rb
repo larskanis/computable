@@ -1,6 +1,5 @@
 # -*- coding: UTF-8 -*-
 require "computable/version"
-require "thread"
 
 class Computable
   class Error < RuntimeError; end
@@ -19,11 +18,12 @@ class Computable
   class Variable
     attr_accessor :name, :calc_method, :used_for, :expired_from, :value, :value_calced, :count, :in_process, :recalc_error
 
-    def initialize(name, calc_method, debug, max_threads)
+    def initialize(name, calc_method, debug, max_threads, mutex)
       @name = name
       @calc_method = calc_method
       @debug = debug
       @max_threads = max_threads
+      @mutex = mutex
       @used_for = {}
       @expired_from = {}
       @count = 0
@@ -40,7 +40,12 @@ class Computable
     def calc!
       self.count += 1
       self.value_calced = true
-      calc_method.call(self)
+      @mutex.unlock
+      begin
+        calc_method.call(self)
+      ensure
+        @mutex.lock
+      end
     end
 
     def expire_value
@@ -104,7 +109,7 @@ class Computable
           puts "recalc parallel #{v.inspect}" if @debug
           err = nil
           begin
-            recalced_value = v.calc!
+            recalced_value = v.calc_method.call(v)
           rescue Exception => err
           end
           from_workers.push([v, recalced_value, err])
@@ -132,7 +137,12 @@ class Computable
           #
           return if num_working == 0
 
-          node, recalced_value, err = from_workers.pop
+          @mutex.unlock
+          begin
+            node, recalced_value, err = from_workers.pop
+          ensure
+            @mutex.lock
+          end
           node.in_process = false
           num_working -= 1
 
@@ -151,6 +161,8 @@ class Computable
             workers << new_worker(from_workers, to_workers)
           end
           node.in_process = true
+          node.count += 1
+          node.value_calced = true
           num_working += 1
           to_workers.push(node)
         end
@@ -251,6 +263,7 @@ class Computable
     @computable_max_threads = 0
     @computable_variables = {}
     @computable_caller = nil
+    @computable_mutex = Mutex.new
   end
 
 
@@ -267,7 +280,8 @@ class Computable
     calc_method2_id = "calc_#{name}_with_tracking".intern
     define_method(calc_method2_id) do |v|
       begin
-        @computable_caller, old_caller = v, @computable_caller
+        old_caller = Thread.current.thread_variable_get("Computable #{object_id}")
+        Thread.current.thread_variable_set("Computable #{self.object_id}", v)
         begin
           puts "do calc #{v.inspect}" if @computable_debug
           res = send(calc_method_id)
@@ -275,27 +289,32 @@ class Computable
           res.freeze if freeze
           res
         ensure
-          @computable_caller = old_caller
+          Thread.current.thread_variable_set("Computable #{self.object_id}", old_caller)
         end
       end
     end
 
     define_method("#{name}=") do |value|
       Computable.verify_format(name, value, format)
-      v = @computable_variables[name]
-      puts "set #{name}: #{value.inspect} #{v.inspect}" if @computable_debug
-      v = @computable_variables[name] = Variable.new(name, method(calc_method2_id), @computable_debug, @computable_max_threads) unless v
+      @computable_mutex.synchronize do
+        v = @computable_variables[name]
+        puts "set #{name}: #{value.inspect} #{v.inspect}" if @computable_debug
+        v = @computable_variables[name] = Variable.new(name, method(calc_method2_id), @computable_debug, @computable_max_threads, @computable_mutex) unless v
 
-      value.freeze if freeze
-      v.assign_value(value)
+        value.freeze if freeze
+        v.assign_value(value)
+      end
     end
 
     define_method(name) do
-      v = @computable_variables[name]
-      puts "called #{name} #{v.inspect}" if @computable_debug
-      v = @computable_variables[name] = Variable.new(name, method(calc_method2_id), @computable_debug, @computable_max_threads) unless v
+      @computable_mutex.synchronize do
+        v = @computable_variables[name]
+        puts "called #{name} #{v.inspect}" if @computable_debug
+        v = @computable_variables[name] = Variable.new(name, method(calc_method2_id), @computable_debug, @computable_max_threads, @computable_mutex) unless v
 
-      v.query_value(@computable_caller)
+        kaller = Thread.current.thread_variable_get("Computable #{object_id}")
+        v.query_value(kaller)
+      end
     end
   end
 
