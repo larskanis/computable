@@ -30,6 +30,29 @@ class TestParallel < Minitest::Test
       end.inject(:+)
     end
 
+    input_value :offs
+
+    100.times do |idx|
+      calc_value "m0-#{idx}" do
+        #sleep 0.001
+        idx + offs
+      end
+      calc_value "m1-#{idx}" do
+        #sleep 0.001
+        idx + offs
+      end
+      calc_value "m-#{idx}" do
+        send("m#{offs}-#{idx}")
+      end
+    end
+
+    calc_value "n" do
+      100.times.sum do |idx|
+        send("m-#{idx}")
+      end
+    end
+
+
     class MyError < RuntimeError
     end
 
@@ -45,6 +68,16 @@ class TestParallel < Minitest::Test
 
   def teardown
 #     @b.computable_display_dot
+  end
+
+  def test_many_recalcs
+    @b.computable_max_threads = 10
+    @b.offs = 0
+    assert_equal 4950, @b.n
+
+    #@b.computable_debug = true
+    @b.offs = 1
+    assert_equal 5050, @b.n
   end
 
   def test_error
