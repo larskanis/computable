@@ -18,11 +18,10 @@ class Computable
   class Variable
     attr_accessor :name, :calc_method, :used_for, :expired_from, :value, :value_calced, :count, :in_process, :recalc_error
 
-    def initialize(name, calc_method, debug, max_threads, mutex)
+    def initialize(name, calc_method, comp, mutex)
       @name = name
       @calc_method = calc_method
-      @debug = debug
-      @max_threads = max_threads
+      @comp = comp
       @mutex = mutex
       @used_for = {}
       @expired_from = {}
@@ -51,7 +50,7 @@ class Computable
     def expire_value
       return if used_for.empty?
 
-      puts "expire #{inspect}" if @debug
+      puts "expire #{inspect}" if @comp.computable_debug
       used_for.each do |name2, v2|
         if v2.value_calced && !v2.expired_from[name]
           v2.expire_value
@@ -63,7 +62,7 @@ class Computable
     def revoke_expire
       return if used_for.empty?
 
-      puts "revoke expire #{inspect}" if @debug
+      puts "revoke expire #{inspect}" if @comp.computable_debug
       used_for.each do |name2, v2|
         if v2.value_calced && v2.expired_from.delete(name) && v2.expired_from.empty?
           v2.revoke_expire
@@ -89,7 +88,7 @@ class Computable
     def recalc_value
       return if !value_calced || expired_from.empty?
 
-      puts "recalc #{inspect}" if @debug
+      puts "recalc #{inspect}" if @comp.computable_debug
       expired_from.each do |name2, v2|
         v2.recalc_value
       end
@@ -106,7 +105,7 @@ class Computable
     def new_worker(from_workers, to_workers)
       Thread.new do
         while v = to_workers.pop
-          puts "recalc parallel #{v.inspect}" if @debug
+          puts "recalc parallel #{v.inspect}" if @comp.computable_debug
           err = nil
           begin
             recalced_value = v.calc_method.call(v)
@@ -204,8 +203,9 @@ class Computable
         end
       end
 
-      if !@max_threads || @max_threads > 0
-        recalc_parallel(@max_threads)
+      max_threads = @comp.computable_max_threads
+      if !max_threads || max_threads > 0
+        recalc_parallel(max_threads)
       else
         recalc_value
       end
@@ -299,7 +299,7 @@ class Computable
       @computable_mutex.synchronize do
         v = @computable_variables[name]
         puts "set #{name}: #{value.inspect} #{v.inspect}" if @computable_debug
-        v = @computable_variables[name] = Variable.new(name, method(calc_method2_id), @computable_debug, @computable_max_threads, @computable_mutex) unless v
+        v = @computable_variables[name] = Variable.new(name, method(calc_method2_id), self, @computable_mutex) unless v
 
         value.freeze if freeze
         v.assign_value(value)
@@ -310,7 +310,7 @@ class Computable
       @computable_mutex.synchronize do
         v = @computable_variables[name]
         puts "called #{name} #{v.inspect}" if @computable_debug
-        v = @computable_variables[name] = Variable.new(name, method(calc_method2_id), @computable_debug, @computable_max_threads, @computable_mutex) unless v
+        v = @computable_variables[name] = Variable.new(name, method(calc_method2_id), self, @computable_mutex) unless v
 
         kaller = Thread.current.thread_variable_get("Computable #{object_id}")
         v.query_value(kaller)
