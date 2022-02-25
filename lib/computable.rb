@@ -16,7 +16,7 @@ class Computable
   end
 
   class Variable
-    attr_accessor :name, :calc_method, :used_for, :expired_from, :value, :value_calced, :count, :in_process, :recalc_error
+    attr_accessor :name, :calc_method, :used_for, :expired_from, :value, :value_calced, :count, :in_process, :recalc_error, :bl2
 
     def initialize(name, calc_method, comp, mutex)
       @name = name
@@ -41,7 +41,7 @@ class Computable
       self.value_calced = true
       @mutex.unlock
       begin
-        calc_method.call(self)
+        calc_method.call(self, @bl2)
       ensure
         @mutex.lock
       end
@@ -75,7 +75,7 @@ class Computable
         self.recalc_error = err
         self.value = Unknown
         used_for.clear
-      elsif self.value == recalced_value
+      elsif self.value == recalced_value && @bl2.nil?
         revoke_expire
       else
         self.recalc_error = nil
@@ -108,7 +108,7 @@ class Computable
           puts "recalc parallel #{v.inspect}" if @comp.computable_debug
           err = nil
           begin
-            recalced_value = v.calc_method.call(v)
+            recalced_value = v.calc_method.call(v, v.bl2)
           rescue Exception => err
           end
           from_workers.push([v, recalced_value, err])
@@ -192,7 +192,8 @@ class Computable
       self.value_calced = false
     end
 
-    def query_value(kaller)
+    def query_value(kaller, bl2)
+      @bl2 = bl2
       if kaller
         v2 = used_for[kaller.name]
         if v2
@@ -279,18 +280,18 @@ class Computable
     define_method(calc_method_id, &block)
 
     calc_method2_id = "calc_#{name}_with_tracking".intern
-    define_method(calc_method2_id) do |v|
+    define_method(calc_method2_id) do |v, bl2|
       begin
         old_caller = Thread.current.thread_variable_get("Computable #{object_id}")
-        Thread.current.thread_variable_set("Computable #{self.object_id}", v)
+        Thread.current.thread_variable_set("Computable #{object_id}", v)
         begin
           puts "do calc #{v.inspect}" if @computable_debug
-          res = send(calc_method_id)
+          res = send(calc_method_id, &bl2)
           Computable.verify_format(name, res, format)
           res.freeze if freeze
           res
         ensure
-          Thread.current.thread_variable_set("Computable #{self.object_id}", old_caller)
+          Thread.current.thread_variable_set("Computable #{object_id}", old_caller)
         end
       end
     end
@@ -307,14 +308,15 @@ class Computable
       end
     end
 
-    define_method(name) do
+    define_method(name) do |&bl2|
+      name2 = bl2 ? "#{name}#" : name
       @computable_mutex.synchronize do
-        v = @computable_variables[name]
-        puts "called #{name} #{v.inspect}" if @computable_debug
-        v = @computable_variables[name] = Variable.new(name, method(calc_method2_id), self, @computable_mutex) unless v
+        v = @computable_variables[name2]
+        puts "called #{name2} #{v.inspect}" if @computable_debug
+        v = @computable_variables[name2] = Variable.new(name2, method(calc_method2_id), self, @computable_mutex) unless v
 
         kaller = Thread.current.thread_variable_get("Computable #{object_id}")
-        v.query_value(kaller)
+        v.query_value(kaller, bl2)
       end
     end
   end
