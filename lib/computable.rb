@@ -136,6 +136,7 @@ class Computable
           #
           return if num_working == 0
 
+          puts "recalc join" if @comp.computable_debug
           @mutex.unlock
           begin
             node, recalced_value, err = from_workers.pop
