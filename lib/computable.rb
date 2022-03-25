@@ -205,15 +205,17 @@ class Computable
         end
       end
 
-      max_threads = @comp.computable_max_threads
-      if !max_threads || max_threads > 0
-        recalc_parallel(max_threads)
-      else
-        recalc_value
+      unless bl2
+        max_threads = @comp.computable_max_threads
+        if !max_threads || max_threads > 0
+          recalc_parallel(max_threads)
+        else
+          recalc_value
+        end
       end
 
       raise recalc_error if recalc_error
-      self.value = calc! if Unknown==value
+      self.value = calc! if Unknown==value || bl2
       self.value
     end
   end
