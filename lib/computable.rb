@@ -197,7 +197,7 @@ class Computable
       if kaller
         v2 = used_for[kaller.name]
         if v2
-          if Unknown==value && Unknown==v2.value && value_calced && v2.value_calced
+          if Unknown==value && Unknown==v2.value && value_calced && v2.value_calced && !bl2
             raise RecursionDetected, "#{v2.name} depends on #{name}, but #{name} could not be computed without #{v2.name}"
           end
         else
@@ -205,18 +205,18 @@ class Computable
         end
       end
 
-      unless bl2
-        max_threads = @comp.computable_max_threads
-        if !max_threads || max_threads > 0
-          recalc_parallel(max_threads)
-        else
-          recalc_value
-        end
+      max_threads = @comp.computable_max_threads
+      if !max_threads || max_threads > 0
+        recalc_parallel(max_threads)
+      else
+        recalc_value
       end
 
       raise recalc_error if recalc_error
-      self.value = calc! if Unknown==value || bl2
-      self.value
+      v = self.value
+      self.value = v = calc! if Unknown==v
+      self.value = Unknown if bl2
+      v
     end
   end
 

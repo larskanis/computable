@@ -2,11 +2,28 @@ require_relative 'helper'
 
 class TestEnumerator < Minitest::Test
   class MyBuilder < Computable
-    calc_value(:v1) { 1 }
-    calc_value(:v2) { 2 }
-    calc_value(:v3) { 3 }
+    attr_reader :counters
 
-    calc_value :each_generated_pdi, freeze: false do |&block|
+    def initialize *args
+      super
+      @counters = {}
+    end
+
+    def self.counted_value name, format=nil, **kwargs, &block
+      define_method "#{name}_counted", &block
+      calc_value name, format, **kwargs do |&bl2|
+        n = "#{name}#{bl2 && '!'}".to_sym
+        @counters[n] ||= 0
+        @counters[n] += 1
+        send "#{name}_counted", &bl2
+      end
+    end
+
+    counted_value(:v1) { 1 }
+    counted_value(:v2) { 2 }
+    counted_value(:v3) { 3 }
+
+    counted_value :each_generated_pdi, freeze: false do |&block|
       return enum_for(:each_generated_pdi) unless block
 
       block.call v1
@@ -15,7 +32,7 @@ class TestEnumerator < Minitest::Test
       41
     end
 
-    calc_value :two_times do
+    counted_value :two_times do
       each_generated_pdi.to_a + each_generated_pdi.to_a
     end
   end
@@ -39,6 +56,7 @@ class TestEnumerator < Minitest::Test
 
     assert_equal [1,3,2, 1,3,2], a
     assert_equal 41, res
+    assert_equal [1,1,1, nil,2, nil], @b.counters.values_at(:v1, :v2, :v3, :each_generated_pdi, :each_generated_pdi!, :two_times)
   end
 
   def test_enumerator
@@ -46,15 +64,18 @@ class TestEnumerator < Minitest::Test
     a = e.to_a + e.to_a
 
     assert_equal [1,3,2, 1,3,2], a
+    assert_equal [1,1,1, 1,2, nil], @b.counters.values_at(:v1, :v2, :v3, :each_generated_pdi, :each_generated_pdi!, :two_times)
   end
 
   def test_decendant_enumerator
     a = @b.two_times
     assert_equal [1,3,2, 1,3,2], a
-
+    assert_equal [1,1,1, 1,2, 1], @b.counters.values_at(:v1, :v2, :v3, :each_generated_pdi, :each_generated_pdi!, :two_times)
+#
     @b.v2 = 4
     a = @b.two_times
     assert_equal [1,3,4, 1,3,4], a
+    assert_equal [1,1,1, 2,4, 2], @b.counters.values_at(:v1, :v2, :v3, :each_generated_pdi, :each_generated_pdi!, :two_times)
   end
 end
 
