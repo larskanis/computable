@@ -101,12 +101,12 @@ class TestParallel < Minitest::Test
       @b.computable_max_threads = nil
       @b.i1, @b.i2 = 2, 3
       dt, res = diff_time{ @b.o }
-      assert_in_delta 0.8, dt, 0.05
+      assert_in_delta 0.8, dt, 0.1
       assert_equal 20, res
 
       @b.i1, @b.i2 = 4, 5
       dt, res = diff_time{ @b.o }
-      assert_in_delta 0.2, dt, 0.05
+      assert_in_delta 0.2, dt, 0.1
       assert_equal 36, res
     end
 
@@ -114,12 +114,12 @@ class TestParallel < Minitest::Test
       @b.computable_max_threads = 2
       @b.i1, @b.i2 = 2, 3
       dt, res = diff_time{ @b.o }
-      assert_in_delta 0.8, dt, 0.05
+      assert_in_delta 0.8, dt, 0.1
       assert_equal 20, res
 
       @b.i1, @b.i2 = 4, 5
       dt, res = diff_time{ @b.o }
-      assert_in_delta 0.4, dt, 0.05
+      assert_in_delta 0.4, dt, 0.1
       assert_equal 36, res
     end
   end
