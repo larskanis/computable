@@ -274,24 +274,35 @@ class Computable
     end
   end
 
+  private def improve_backtrace(err, block, text)
+    fpath, lineno = block.source_location
+    bt = err.backtrace
+    myloc = err.backtrace_locations.select.with_index{|loc, i| loc.path == fpath && loc.lineno >= lineno && !bt[i].include?("#") }.min{|a,b| a.lineno <=> b.lineno }
+    idx = err.backtrace_locations.index(myloc)
+    bt[idx] += " ##{text}"
+    raise err
+  end
+
   def self.calc_value name, format=nil, freeze: true, &block
     calc_method_id = "calc_#{name}".intern
-    define_method(calc_method_id, &block)
+    define_method(calc_method_id) do
+      instance_eval(&block)
+    rescue Exception => err
+      improve_backtrace(err, block, name)
+    end
 
     calc_method2_id = "calc_#{name}_with_tracking".intern
     define_method(calc_method2_id) do |v|
+      old_caller = Thread.current.thread_variable_get("Computable #{object_id}")
+      Thread.current.thread_variable_set("Computable #{self.object_id}", v)
       begin
-        old_caller = Thread.current.thread_variable_get("Computable #{object_id}")
-        Thread.current.thread_variable_set("Computable #{self.object_id}", v)
-        begin
-          puts "do calc #{v.inspect}" if @computable_debug
-          res = send(calc_method_id)
-          Computable.verify_format(name, res, format)
-          res.freeze if freeze
-          res
-        ensure
-          Thread.current.thread_variable_set("Computable #{self.object_id}", old_caller)
-        end
+        puts "do calc #{v.inspect}" if @computable_debug
+        res = send(calc_method_id)
+        Computable.verify_format(name, res, format)
+        res.freeze if freeze
+        res
+      ensure
+        Thread.current.thread_variable_set("Computable #{self.object_id}", old_caller)
       end
     end
 
