@@ -285,11 +285,7 @@ class Computable
 
   def self.calc_value name, format=nil, freeze: true, &block
     calc_method_id = "calc_#{name}".intern
-    define_method(calc_method_id) do
-      instance_eval(&block)
-    rescue Exception => err
-      improve_backtrace(err, block, name)
-    end
+    define_method(calc_method_id, &block)
 
     calc_method2_id = "calc_#{name}_with_tracking".intern
     define_method(calc_method2_id) do |v|
@@ -297,7 +293,11 @@ class Computable
       Thread.current.thread_variable_set("Computable #{self.object_id}", v)
       begin
         puts "do calc #{v.inspect}" if @computable_debug
-        res = send(calc_method_id)
+        begin
+          res = send(calc_method_id)
+        rescue Exception => err
+          improve_backtrace(err, block, name)
+        end
         Computable.verify_format(name, res, format)
         res.freeze if freeze
         res
