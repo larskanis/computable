@@ -90,7 +90,7 @@ class Computable
 
       puts "recalc #{inspect}" if @comp.computable_debug
       expired_from.each do |name2, v2|
-        v2.recalc_value
+        v2.recalc_value  # Adjust improve_backtrace when moving this line within method recalc_value
       end
 
       unless expired_from.empty?
@@ -275,11 +275,15 @@ class Computable
   end
 
   private def improve_backtrace(err, block, text)
+    recalc_location_fpath, recalc_location_lineno = Variable.instance_method(:recalc_value).source_location
     fpath, lineno = block.source_location
     bt = err.backtrace
-    myloc = err.backtrace_locations.select.with_index{|loc, i| loc.path == fpath && loc.lineno >= lineno && !bt[i].include?("#") }.min{|a,b| a.lineno <=> b.lineno }
+    myloc = err.backtrace_locations.find.with_index do |loc, i|
+      (loc.path == recalc_location_fpath && loc.lineno == recalc_location_lineno + 5 && !bt[i].include?("#")) ||
+      (loc.path == fpath && loc.lineno >= lineno && !bt[i].include?("#") && !bt[i].include?("#"))
+    end
     idx = err.backtrace_locations.index(myloc)
-    bt[idx] += " ##{text}"
+    bt[idx] += " ##{text}" if idx
     raise err
   end
 
