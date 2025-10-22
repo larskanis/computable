@@ -17,6 +17,11 @@ class TestInputValue < Minitest::Test
 #     @b.computable_display_dot
   end
 
+  def test_undefined_input_twice
+    assert_raises(Computable::UndefinedValue){ @b.o }
+    assert_raises(Computable::UndefinedValue){ @b.o }
+  end
+
   def test_undefined_input
     assert_raises(Computable::UndefinedValue){ @b.i }
     assert_raises(Computable::UndefinedValue){ @b.o }

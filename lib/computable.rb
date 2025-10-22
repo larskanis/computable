@@ -27,21 +27,25 @@ class Computable
       @expired_from = {}
       @count = 0
       @value = Unknown
+      @value_calced = nil
       @in_process = false
       @recalc_error = nil
     end
 
     def inspect
       has = @recalc_error ? "error!" : "value:#{Unknown!=value}"
-      "<Variable #{name} used_for:#{used_for.keys} expired_from:#{expired_from.keys} has #{has} value_calced:#{value_calced.inspect}>"
+      "<Variable #{name} used_for:#{used_for.keys} expired_from:#{expired_from.keys} has #{has} value_calced:#{case value_calced when NilClass then :no when 1 then :yes when 2 then :exception end}>"
     end
 
     def calc!
       self.count += 1
-      self.value_calced = true
+      self.value_calced = 1
       @mutex.unlock
       begin
         calc_method.call(self)
+      rescue
+        self.value_calced = 2
+        raise
       ensure
         @mutex.lock
       end
@@ -162,7 +166,7 @@ class Computable
           end
           node.in_process = true
           node.count += 1
-          node.value_calced = true
+          node.value_calced = 1
           num_working += 1
           to_workers.push(node)
         end
@@ -189,14 +193,14 @@ class Computable
         used_for.clear
         self.value = value
       end
-      self.value_calced = false
+      self.value_calced = nil
     end
 
     def query_value(kaller)
       if kaller
         v2 = used_for[kaller.name]
         if v2
-          if Unknown==value && Unknown==v2.value && value_calced && v2.value_calced
+          if Unknown==value && Unknown==v2.value && value_calced == 1 && v2.value_calced
             raise RecursionDetected, "#{v2.name} depends on #{name}, but #{name} could not be computed without #{v2.name}"
           end
         else
