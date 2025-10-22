@@ -279,8 +279,8 @@ class Computable
     fpath, lineno = block.source_location
     bt = err.backtrace
     myloc = err.backtrace_locations.find.with_index do |loc, i|
-      (loc.path == recalc_location_fpath && loc.lineno == recalc_location_lineno + 5 && !bt[i].include?("#")) ||
-      (loc.path == fpath && loc.lineno >= lineno && !bt[i].include?("#") && !bt[i].include?("#"))
+      (loc.path == recalc_location_fpath && loc.lineno == recalc_location_lineno + 5 && !bt[i].include?(" #")) ||
+      (loc.path == fpath && loc.lineno >= lineno && !bt[i].include?(" #") && !bt[i].include?(" #"))
     end
     idx = err.backtrace_locations.index(myloc)
     bt[idx] += " ##{text}" if idx

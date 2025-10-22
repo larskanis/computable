@@ -6,10 +6,13 @@ class TestBacktrace < Minitest::Test
       c
     end
 
-    calc_value :c do
-      raise "my error" if enable
-      :x
+    def self.make_c
+      calc_value :c do
+        raise "my error" if enable
+        :x
+      end
     end
+    make_c
 
     calc_value :a do
       b
@@ -30,7 +33,7 @@ class TestBacktrace < Minitest::Test
     err = assert_raises(StandardError){ @b.b }
     bt = err.backtrace.join("\n")
     assert_match(/my error/, err.to_s)
-    assert_match(/test_backtrace.rb:10:.* #c$/, bt)
+    assert_match(/test_backtrace.rb:11:.* #c$/, bt)
     assert_match(/test_backtrace.rb:6:.* #b$/, bt)
   end
 
@@ -42,7 +45,7 @@ class TestBacktrace < Minitest::Test
     err = assert_raises(StandardError){ @b.b }
     bt = err.backtrace.join("\n")
     assert_match(/my error/, err.to_s)
-    assert_match(/test_backtrace.rb:10:.* #c$/, bt)
+    assert_match(/test_backtrace.rb:11:.* #c$/, bt)
     assert_match(/block in recalc_value' #b$/, bt) unless @b.computable_max_threads
   end
 
@@ -54,7 +57,7 @@ class TestBacktrace < Minitest::Test
     err = assert_raises(StandardError){ @b.a }
     bt = err.backtrace.join("\n")
     assert_match(/my error/, err.to_s)
-    assert_match(/test_backtrace.rb:10:.* #c$/, bt)
+    assert_match(/test_backtrace.rb:11:.* #c$/, bt)
     assert_match(/block in recalc_value' #b.*block in recalc_value' #a$/m, bt) unless @b.computable_max_threads
   end
 end
